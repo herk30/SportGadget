@@ -63,14 +63,14 @@ export default function Home(){
   useEffect(()=> {
     if (!isRunning) return ;
     if (phase == 'Work'){
-       if (seconds === 0) playSound('sportapp/Sound/Start.mp3');
-       else if (seconds === 60) playSound('sportapp/Sound/Onemin.mp3');
-       else if (seconds === 120) playSound('sportapp/Sound/Twomin.mp3');
+       if (seconds === 0) playSound('sportapp\Sound\Start.mp3');
+       else if (seconds === 60) playSound('sportapp\Sound\Onemin.mp3');
+       else if (seconds === 120) playSound('sportapp\Sound\Twomin.mp3');
        else if (seconds > 150 && seconds < 180) {
-        playSound('sportapp/Sound/BaMuoiSecond.mp3');                                  
+        playSound('sportapp\Sound\BaMuoiSecond.mp3');                                  
       }
       else if (seconds ===180){
-        playSound('sportapp/Sound/TimeOut.mp3');
+        playSound('sportapp\Sound\TimeOut.mp3');
         setTimeout(() => {
           setPhase('Rest');
           setSeconds(0);
@@ -150,52 +150,60 @@ export default function Home(){
       const esp32_ips = ["172.20.10.2"]; 
       let socket: WebSocket | null = null;
       let isConnected = false;
+
       const connectToESP32 = (ipIndex: number) => {
         if (ipIndex >= esp32_ips.length) {
           console.error("Đã thử hết tất cả IP nhưng không thể kết nối tới ESP32.");
           setConnected(0);
           return;
         }
+        
         const currentIp = esp32_ips[ipIndex];
         console.log(`Đang thử kết nối WebSocket với: ${currentIp}...`);
         
-        socket = new WebSocket(`ws://${currentIp}/ws`);
+        try {
+          socket = new WebSocket(`ws://${currentIp}/ws`);
 
-        socket.onopen = () => {
-          console.log(`Kết nối thành công với ESP32 tại IP: ${currentIp}`);
-          isConnected = true;
-        };
+          socket.onopen = () => {
+            console.log(`Kết nối thành công với ESP32 tại IP: ${currentIp}`);
+            isConnected = true;
+          };
 
-        socket.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            setHeartRate(data.hr);
-            setCalories(data.cal);
-            setIntensity(data.intensity);
-            setTotalSeconds(data.time);
-            setConnected(Number(data.connected));
-          } catch (err) {
-            console.error("Lỗi đọc dữ liệu JSON:", err);
-          }
-        };
+          socket.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              setHeartRate(data.hr);
+              setCalories(data.cal);
+              setIntensity(data.intensity);
+              setTotalSeconds(data.time);
+              setConnected(Number(data.connected));
+            } catch (err) {
+              console.error("Lỗi đọc dữ liệu JSON:", err);
+            }
+          };
 
-        socket.onerror = (error) => {
-          console.error(`Lỗi kết nối tại ${currentIp}`);
-        };
+          socket.onerror = (error) => {
+            console.error(`Lỗi kết nối tại ${currentIp}`);
+          };
 
-        socket.onclose = () => {
-          if (!isConnected) {
-            console.log(`Kết nối thất bại với ${currentIp}, chuyển sang IP tiếp theo...`);
-            connectToESP32(ipIndex + 1);
-          } else {
-            console.log("Bị mất kết nối với ESP32 đang chạy.");
-            isConnected = false;
-            setConnected(0);
-          }
-        };
+          socket.onclose = () => {
+            if (!isConnected) {
+              console.log(`Kết nối thất bại với ${currentIp}, chuyển sang IP tiếp theo...`);
+              connectToESP32(ipIndex + 1);
+            } else {
+              console.log("Bị mất kết nối với ESP32 đang chạy.");
+              isConnected = false;
+              setConnected(0);
+            }
+          };
+        } catch (error) {
+          console.error(`Trình duyệt đã chặn kết nối tới ${currentIp} (Lỗi Mixed Content):`, error);
+          setConnected(0);
+        }
       };
 
       connectToESP32(0);
+      
       return () => {
         if (socket) {
           socket.close();
